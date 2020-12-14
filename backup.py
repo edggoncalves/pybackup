@@ -14,15 +14,17 @@ def _configuration():
 
 def _request(target, key):
     http = urllib3.PoolManager()
+    headers = {
+                'Authorization': 'Bearer {}'.format(key),
+                'Content-type': 'application/json'
+            }
 
     r = json.loads(
         http.request(
             method='GET',
             url=target,
-            headers={
-                'Authorization': 'Bearer {}'.format(key),
-                'Content-type': 'application/json'
-            }
+            headers=headers,
+            timeout=10.0,
         ).data.decode('utf8')
     )
 
