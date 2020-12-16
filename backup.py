@@ -28,25 +28,29 @@ def _request(target, key):
         ).data.decode('utf8')
     )
 
-    return print(r.get('data')[0])
+    return r
 
 
-def _build_args(settings):
+def _build_target(settings, key):
     api = settings.get('api').get('address', 'https://api.linode.com/v4')
     endpoint = settings.get('api').get('buckets_endpoint', '')
-    cluster_id = settings.get('backup_bucket').get('cluster', '')
-    args = [api, endpoint, cluster_id]
-    target = '/'.join([arg for arg in (args or [])])
+    cluster = _request('/'.join((api, endpoint)), key).get('data')[0].get('cluster')
+    target = '/'.join([
+        api,
+        endpoint,
+        cluster
+    ])
 
     return target
 
 
 def do_something():
     settings = _configuration()
-    target = _build_args(settings)
     key = settings.get('api').get('key', '')
+    target = _build_target(settings, key)
 
-    _request(target, key)
+    r = _request(target, key)
+    print(r)
 
 
 do_something()
