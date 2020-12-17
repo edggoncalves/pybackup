@@ -1,32 +1,36 @@
 import yaml
 import urllib3
 import json
+import boto3
 
 
 def _configuration():
     with open("settings.yaml", 'r') as stream:
         try:
             settings = yaml.load(stream, Loader=yaml.SafeLoader).get('buckets_settings', {})
-            return settings
+            token = settings.get('api').get('key', '')
+            access_key = settings.get('bucket_keys').get('access_key', '')
+            secret_key = settings.get('bucket_keys').get('secret_key', '')
+            return settings, token, access_key, secret_key
         except yaml.YAMLError as exception:
             print(exception)
 
 
-def _request(target, key):
+def _request(target, token):
     http = urllib3.PoolManager()
     headers = {
-                'Authorization': 'Bearer {}'.format(key),
+                'Authorization': 'Bearer {}'.format(token),
                 'Content-type': 'application/json'
             }
 
-    r = json.loads(
-        http.request(
+    r = http.request(
             method='GET',
             url=target,
             headers=headers,
             timeout=10.0,
-        ).data.decode('utf8')
     )
+    r = r.data.decode('utf8')
+    r = json.loads(r)
 
     return r
 
@@ -44,13 +48,27 @@ def _build_target(settings, key):
     return target
 
 
-def do_something():
-    settings = _configuration()
-    key = settings.get('api').get('key', '')
-    target = _build_target(settings, key)
+def _list_buckets(buckets_info, token, access_key, secret_key):
+    endpoint_url = buckets_info.get('data', {})[0].get('hostname', '')
+    client = boto3.client(
+        's3',
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        endpoint_url='https://{}'.format(endpoint_url),
+    )
 
-    r = _request(target, key)
-    print(r)
+    buckets = client.list_buckets()
+
+    return buckets
+
+
+def do_something():
+    settings, token, access_key, secret_key = _configuration()
+    target = _build_target(settings, token)
+    buckets_info = _request(target, token)
+    list_buckets = _list_buckets(buckets_info, token, access_key, secret_key)
+
+    print(list_buckets)
 
 
 do_something()
