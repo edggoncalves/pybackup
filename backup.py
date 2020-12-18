@@ -49,15 +49,16 @@ def _build_target(settings, key):
 
 
 def _list_buckets(buckets_info, token, access_key, secret_key):
-    endpoint_url = buckets_info.get('data', {})[0].get('hostname', '')
+    hostname = buckets_info.get('data', {})[0].get('hostname', '')
+    endpoint_url = 'https://{}'.format('.'.join(hostname.split('.')[1:]))
     client = boto3.client(
         's3',
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
-        endpoint_url='https://{}'.format(endpoint_url),
+        endpoint_url=endpoint_url,
     )
 
-    buckets = client.list_buckets()
+    buckets = client.list_buckets().get('Buckets')
 
     return buckets
 
